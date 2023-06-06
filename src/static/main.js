@@ -16,46 +16,61 @@ socket.on('connect', () => {
 });
 
 socket.on('new detections', function (detections) {
-   // push old boxes to array
-   newBoxes.forEach(box => {
-      const rect = box[1].getBoundingClientRect();
-      oldBoxes.push({ id: box[0], top: rect.top, left: rect.left, width: rect.width, height: rect.height });
-   });
 
    // main function to draw boxes
-   detections.forEach(detection => {
-      drawBox(detection.box_coordinates[0], detection.box_coordinates[1], detection.box_coordinates[2], detection.box_coordinates[3], detection.data, detection.class_id);
+   detections.forEach(({ box_coordinates: [x1, y1, x2, y2], data, class_id }) => {
+      drawBox(x1, y1, x2, y2, data, class_id);
+   })
+
+   // push old boxes to array
+   newBoxes.forEach(([id, box, value]) => {
+      const { top, left, width, height } = box.getBoundingClientRect();
+      oldBoxes.push({ id, top, left, width, height, value });
    });
 
+   // check if some boxes are on range field for data scaling
    objectOnRangeField();
+
+   // clear unactive objects
    clearUnactiveObjects();
+
+   // reset oldBoxes and newBoxes
    oldBoxes = [];
    newBoxes = [];
 });
 
 function objectOnRangeField() {
    // check if object is on range field
-   wrapper.querySelectorAll('canvas').forEach(box => {
-      const rect = box.getBoundingClientRect();
+   newBoxes.forEach(box => {
+      const { left, top } = box[1].getBoundingClientRect();
+      const { offsetWidth, offsetHeight } = box[1];
       const rangeDistance = 325
-      if (rect.left <= (rangeDistance - box.offsetWidth) && rect.top <= (rangeDistance - box.offsetHeight)) {
+
+      if (left <= (rangeDistance - offsetWidth) && top <= (rangeDistance - offsetHeight)) {
          range.disabled = false;
-      } else
+         box[2] = range.value;
+         console.log(box[2]);
+         setInnerHtml(box);
+      } else {
+         range.value = 0;
          range.disabled = true;
+      }
    });
 }
+
 
 function clearPreObject(id, boxStartX, boxStartY, boxWidth, boxHeight) {
    let newObj = true;
    wrapper.querySelectorAll('canvas').forEach(box => {
       if (box.id != id) return;
-      const rect = box.getBoundingClientRect();
+      const { left, top, width, height } = box.getBoundingClientRect();
       const buffer = 8;
       newObj = false;
-      if (Math.abs(rect.left - boxStartX) > buffer ||
-         Math.abs(rect.top - boxStartY) > buffer ||
-         Math.abs(rect.width - boxWidth) > buffer ||
-         Math.abs(rect.height - boxHeight) > buffer) {
+
+      if (Math.abs(left - boxStartX) > buffer ||
+         Math.abs(top - boxStartY) > buffer ||
+         Math.abs(width - boxWidth) > buffer ||
+         Math.abs(height - boxHeight) > buffer) {
          box.nextElementSibling.remove();
          box.remove();
          newObj = true;
@@ -86,27 +101,29 @@ function drawBox(xa, ya, xb, yb, data, id) {
    ctx.beginPath();
    ctx.rect(0, 0, boxWidth, boxHeight);
    ctx.stroke();
-   addBox(id, box);
+
+   addBox(id, box, 1);
    if (!newObj) return;
    wrapper.appendChild(box);
-   drawDataBox(data, boxStartX, boxStartY, (boxWidth + 5), box)
+   drawDataBox(data, boxStartX, boxStartY, (boxWidth + 5), box, id)
 }
 
-function drawDataBox(data, left, top, boxWidth, box, newObject) {
-   let overlapResult = isOverlapping(box);
+function drawDataBox(data, left, top, boxWidth, box, id) {
+   // let overlapResult = isOverlapping(box);
    const dataBox = document.createElement('div');
    const value = document.createElement('div');
-   value.innerHTML = "100g";
    const dataWrapper = document.createElement('div');
    dataWrapper.classList.add('dataBox');
    dataWrapper.style.position = "absolute";
    dataWrapper.style.width = 150 + "px";
-   let leftPos = findPosition(overlapResult, "left");
-   let rightPos = findPosition(overlapResult, "right");
-   let topPos = findPosition(overlapResult, "top");
-   let bottomPos = findPosition(overlapResult, "bottom");
-
+   value.innerHTML = setInnerHtml([id, box, 1]);
    setDataBoxPosition((left + boxWidth), top, dataWrapper);
+
+   // let leftPos = findPosition(overlapResult, "left");
+   // let rightPos = findPosition(overlapResult, "right");
+   // let topPos = findPosition(overlapResult, "top");
+   // let bottomPos = findPosition(overlapResult, "bottom");
+
    // if (overlapResult.length == 0) {
    // }
    // if (leftPos != -1 && topPos == -1 && bottomPos == -1) {
@@ -114,17 +131,13 @@ function drawDataBox(data, left, top, boxWidth, box, newObject) {
    //    setDataBoxPosition((left - 150), top, dataBox);
    // }
    // if (leftPos != -1 && topPos != -1 && bottomPos == -1) {
-   //    // console.log("top left");
    //    setDataBoxPosition((left - 150), (top - overlapResult[leftPos][0] / 1.5), dataBox);
    // }
    // if (leftPos != -1 && topPos == -1 && bottomPos != -1) {
-   //    // console.log("bottom left");
    // }
    // if (leftPos == -1 && topPos != -1 && bottomPos == -1) {
-   //    // console.log("top");
    // }
    // if (leftPos == -1 && topPos == -1 && bottomPos != -1) {
-   //    // console.log("bottom");
    // }
    // // if (el.includes("left")) {
    // // }
@@ -137,6 +150,9 @@ function drawDataBox(data, left, top, boxWidth, box, newObject) {
    wrapper.appendChild(dataWrapper);
 }
 
+function setInnerHtml(box) {
+   return `${box[2]}*${100}g`
+}
 
 function findPosition(overlapResult, pos) {
    pos = overlapResult.some(subArray => subArray.includes(pos)) ? overlapResult.findIndex(subArray => subArray.includes(pos)) : -1;
@@ -148,16 +164,16 @@ function setDataBoxPosition(left, top, dataWrapper) {
    dataWrapper.style.top = top + "px";
 }
 
-function addBox(id, box) {
+function addBox(id, box, value) {
    if (newBoxes.length == 0) {
-      newBoxes.push([id, box, 0])
+      newBoxes.push([id, box, value])
       return;
    };
 
-   isAvailable = true;
+   let isAvailable = true;
    for (let i = 0; i < newBoxes.length; i++) {
       if (newBoxes[i][0] != id) break;
-      newBoxes[i] = [id, box]
+      newBoxes[i] = [id, box, value]
       isAvailable = false;
    }
 
