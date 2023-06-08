@@ -10,26 +10,30 @@ activeObjectId = null;
 
 let newBoxes = [];
 let oldBoxes = [];
+let pastBoxes = [];
 
 socket.on('connect', () => {
    socket.emit('my event', { data: 'I\'m connected!' });
 });
 
 socket.on('new detections', function (detections) {
-
+   // remove old boxes
+   removeUnmatchedCanvases(detections);
    // main function to draw boxes
    detections.forEach(({ box_coordinates: [x1, y1, x2, y2], data, class_id }) => {
       drawBox(x1, y1, x2, y2, data, class_id);
-   })
+   });
 
    // push old boxes to array
    newBoxes.forEach(([id, box, value]) => {
       const { top, left, width, height } = box.getBoundingClientRect();
-      oldBoxes.push({ id, top, left, width, height, value });
+      oldBoxes.push({ id, box, top, left, width, height, value });
    });
 
+   oldBoxes.forEach(box => {
+      objectOnRangeField(box);
+   });
    // check if some boxes are on range field for data scaling
-   objectOnRangeField();
 
    // clear unactive objects
    clearUnactiveObjects();
@@ -39,45 +43,28 @@ socket.on('new detections', function (detections) {
    newBoxes = [];
 });
 
-function objectOnRangeField() {
+function objectOnRangeField(oldBox) {
+   const canvas = document.getElementById(oldBox.id);
+   if (!canvas) return;
+   const box = [oldBox.id, canvas, oldBox.value]
+
    // check if object is on range field
-   newBoxes.forEach(box => {
-      const { left, top } = box[1].getBoundingClientRect();
-      const { offsetWidth, offsetHeight } = box[1];
-      const rangeDistance = 325
+   const { left, top } = box[1].getBoundingClientRect();
+   const { offsetWidth, offsetHeight } = box[1];
+   const rangeDistance = 325
 
-      if (left <= (rangeDistance - offsetWidth) && top <= (rangeDistance - offsetHeight)) {
-         range.disabled = false;
-         box[2] = range.value;
-         console.log(box[2]);
-         setInnerHtml(box);
-      } else {
-         range.value = 0;
-         range.disabled = true;
-      }
-   });
-}
-
-
-function clearPreObject(id, boxStartX, boxStartY, boxWidth, boxHeight) {
-   let newObj = true;
-   wrapper.querySelectorAll('canvas').forEach(box => {
-      if (box.id != id) return;
-      const { left, top, width, height } = box.getBoundingClientRect();
-      const buffer = 8;
-      newObj = false;
-
-      if (Math.abs(left - boxStartX) > buffer ||
-         Math.abs(top - boxStartY) > buffer ||
-         Math.abs(width - boxWidth) > buffer ||
-         Math.abs(height - boxHeight) > buffer) {
-         box.nextElementSibling.remove();
-         box.remove();
-         newObj = true;
-         return;
-      }
-   });
-   return newObj;
+   if (left <= (rangeDistance - offsetWidth) && top <= (rangeDistance - offsetHeight)) {
+      range.disabled = false;
+      box[2] = range.value;
+      box[1].nextElementSibling.querySelectorAll('.value').forEach(el => {
+         const value = setInnerHtml([box[0], el, box[2]]);
+         el.innerHTML = value;
+         box[1].setAttribute('value', value);
+      });
+   } else {
+      range.value = 0;
+      range.disabled = true;
+   }
 }
 
 function drawBox(xa, ya, xb, yb, data, id) {
@@ -89,13 +76,14 @@ function drawBox(xa, ya, xb, yb, data, id) {
    const boxHeight = Math.floor(yb) - Math.floor(ya);
    const boxStartX = Math.floor(xa);
    const boxStartY = Math.floor(ya);
-   const newObj = clearPreObject(id, boxStartX, boxStartY, boxWidth, boxHeight);
+   const newObj = removeIfChanged(id, boxStartX, boxStartY, boxWidth, boxHeight);
 
    box.width = boxWidth;
    box.height = boxHeight;
    box.style.position = "absolute";
    box.style.left = boxStartX + "px";
    box.id = id;
+   box.setAttribute('value', 1);
    const top = box.style.top = boxStartY + "px";
 
    ctx.beginPath();
@@ -109,49 +97,25 @@ function drawBox(xa, ya, xb, yb, data, id) {
 }
 
 function drawDataBox(data, left, top, boxWidth, box, id) {
-   // let overlapResult = isOverlapping(box);
-   const dataBox = document.createElement('div');
-   const value = document.createElement('div');
    const dataWrapper = document.createElement('div');
-   dataWrapper.classList.add('dataBox');
+   dataWrapper.classList.add('dataWrapper');
    dataWrapper.style.position = "absolute";
    dataWrapper.style.width = 150 + "px";
-   value.innerHTML = setInnerHtml([id, box, 1]);
-   setDataBoxPosition((left + boxWidth), top, dataWrapper);
 
-   // let leftPos = findPosition(overlapResult, "left");
-   // let rightPos = findPosition(overlapResult, "right");
-   // let topPos = findPosition(overlapResult, "top");
-   // let bottomPos = findPosition(overlapResult, "bottom");
-
-   // if (overlapResult.length == 0) {
-   // }
-   // if (leftPos != -1 && topPos == -1 && bottomPos == -1) {
-   //    // console.log("left");
-   //    setDataBoxPosition((left - 150), top, dataBox);
-   // }
-   // if (leftPos != -1 && topPos != -1 && bottomPos == -1) {
-   //    setDataBoxPosition((left - 150), (top - overlapResult[leftPos][0] / 1.5), dataBox);
-   // }
-   // if (leftPos != -1 && topPos == -1 && bottomPos != -1) {
-   // }
-   // if (leftPos == -1 && topPos != -1 && bottomPos == -1) {
-   // }
-   // if (leftPos == -1 && topPos == -1 && bottomPos != -1) {
-   // }
-   // // if (el.includes("left")) {
-   // // }
-   // // if (el.includes("left") && overlapResult.includes("top")) {
-   // //    setDataBoxPosition((left - 150), (top - 50), dataBox);
-   // // }
-
+   const dataBox = document.createElement('div');
    dataBox.textContent = data;
+
+   const value = document.createElement('div');
+   value.classList.add('value');
+   value.innerHTML = setInnerHtml([id, box, 1]);
+
+   setDataBoxPosition((left + boxWidth), top, dataWrapper);
    dataWrapper.append(dataBox, value);
    wrapper.appendChild(dataWrapper);
 }
 
 function setInnerHtml(box) {
-   return `${box[2]}*${100}g`
+   return `${box[2] * 100}g`
 }
 
 function findPosition(overlapResult, pos) {
@@ -180,6 +144,37 @@ function addBox(id, box, value) {
    if (isAvailable) {
       newBoxes.push([id, box]);
    }
+}
+
+function removeIfChanged(id, boxStartX, boxStartY, boxWidth, boxHeight) {
+   const box = document.getElementById(id.toString());
+   if (box == null) return true;
+
+   const { offsetLeft: left, offsetTop: top, offsetWidth: width, offsetHeight: height } = box;
+   const buffer = 5;
+
+   if (Math.abs(left - boxStartX) > buffer ||
+      Math.abs(top - boxStartY) > buffer ||
+      Math.abs(width - boxWidth) > buffer ||
+      Math.abs(height - boxHeight) > buffer) {
+      box.nextElementSibling.remove();
+      box.remove();
+      return false;
+   }
+   return false;
+}
+
+function removeUnmatchedCanvases(detections) {
+   const classIds = new Set(detections.map(detection => detection.class_id));
+   wrapper.querySelectorAll('canvas').forEach(canvas => {
+      if (!classIds.has(parseInt(canvas.id))) {
+         if (!pastBoxes.some(([id, value]) => id === canvas.id)) {
+            pastBoxes.push([canvas.id, canvas.getAttribute('value')]);
+         }
+         canvas.nextSibling.remove();
+         canvas.remove();
+      }
+   });
 }
 
 function isOverlapping(box1) {
@@ -218,3 +213,31 @@ function clearUnactiveObjects() {
       }
    });
 }
+
+
+   // drawDataBox
+   // let leftPos = findPosition(overlapResult, "left");
+   // let rightPos = findPosition(overlapResult, "right");
+   // let topPos = findPosition(overlapResult, "top");
+   // let bottomPos = findPosition(overlapResult, "bottom");
+
+   // if (overlapResult.length == 0) {
+   // }
+   // if (leftPos != -1 && topPos == -1 && bottomPos == -1) {
+   //    // console.log("left");
+   //    setDataBoxPosition((left - 150), top, dataBox);
+   // }
+   // if (leftPos != -1 && topPos != -1 && bottomPos == -1) {
+   //    setDataBoxPosition((left - 150), (top - overlapResult[leftPos][0] / 1.5), dataBox);
+   // }
+   // if (leftPos != -1 && topPos == -1 && bottomPos != -1) {
+   // }
+   // if (leftPos == -1 && topPos != -1 && bottomPos == -1) {
+   // }
+   // if (leftPos == -1 && topPos == -1 && bottomPos != -1) {
+   // }
+   // // if (el.includes("left")) {
+   // // }
+   // // if (el.includes("left") && overlapResult.includes("top")) {
+   // //    setDataBoxPosition((left - 150), (top - 50), dataBox);
+   // // }

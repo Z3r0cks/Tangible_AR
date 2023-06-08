@@ -66,7 +66,7 @@ def object_detection(webcam_resolution=[1280, 720]):
         frame = zone_annotator.annotate(scene=frame)
 
         cv2.imshow("YOLOv8", frame)
-        if (cv2.waitKey(1000) == 27):
+        if (cv2.waitKey(750) == 27):
             break
 
         # Emit a message with detected objects to the client.
