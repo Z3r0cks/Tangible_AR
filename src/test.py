@@ -22,7 +22,7 @@ ZOME_POLYGON = np.array([
 
 @app.route('/')
 def index():
-    return render_template('index.html')    
+    return render_template('index.html')
 
 
 def object_detection(webcam_resolution=[1280, 720]):
@@ -66,7 +66,7 @@ def object_detection(webcam_resolution=[1280, 720]):
         frame = zone_annotator.annotate(scene=frame)
 
         cv2.imshow("YOLOv8", frame)
-        if (cv2.waitKey(750) == 27):
+        if (cv2.waitKey(300) == 27):
             break
 
         # Emit a message with detected objects to the client.
@@ -77,34 +77,36 @@ def object_detection(webcam_resolution=[1280, 720]):
             # get infos from detections and save them in a list
             detection_info = {
                 "class_id": int(detections.class_id[i]),
-                "box_coordinates": [float(coord) for coord in detections.xyxy[i]]
+                "box_coordinates": [float(coord) for coord in detections.xyxy[i]],
+                "name": "Nährstoffe"
             }
             detections_list.append(detection_info)
 
             # database access for the information of the detected object
             conn = sqlite3.connect('food_data.sqlite')
+            conn.row_factory = sqlite3.Row
+
             c = conn.cursor()
-            c.execute('SELECT * FROM food WHERE id=?',
+            c.execute('SELECT * FROM food_nutrients WHERE Food_ID=?',
                       (int(detections.class_id[i]),))
             result = c.fetchone()
-            print(result)
+
+            c.execute("PRAGMA table_info(meineTabelle);")
 
             if result is not None:
-                detection_info["data"] = result[2]
+                detection_info["data"] = dict(result)
             conn.close()
 
         socketio.emit('new detections', detections_list)
 
+# @ socketio.on('connect')
+# def test_connect():
+#     print("Client connected")
 
-@ socketio.on('connect')
-def test_connect():
-    print("Client connected")
 
-
-@ socketio.on('disconnect')
-def test_disconnect():
-    print("Client disconnected")
-
+# @ socketio.on('disconnect')
+# def test_disconnect():
+#     print("Client disconnected")
 
 if __name__ == '__main__':
     object_detection_thread = threading.Thread(target=object_detection)
