@@ -6,18 +6,37 @@
    <meta http-equiv="X-UA-Compatible" content="IE=edge">
    <meta name="viewport" content="width=device-width, initial-scale=1.0">
    <script defer src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
-   <!-- <script defer src="{{ url_for('static', filename='main.js') }}"></script>
-   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"> -->
+   <script defer src="{{ url_for('static', filename='main.js') }}"></script>
+   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
    <link rel="stylesheet" href="../static/style.css">
 
    <title>Document</title>
 </head>
 
 <body>
-   <div id="rangefield"></div>
+   <h1>Frühstücks-Check</h1>
+   <h2>wie<span id="titleType"> nährreich </span>startest Du in den Tag?</h2>
+   <div id="foodSpace">
+      <div>
+         <span class="foodField"></span>
+         <span class="foodField"></span>
+      </div>
+      <div>
+         <span class="foodField"></span>
+         <span class="foodField"></span>
+      </div>
+      <div>
+         <span class="foodField"></span>
+         <span class="foodField"></span>
+      </div>
+      <div>
+         <span class="foodField"></span>
+         <span class="foodField"></span>
+      </div>
+   </div>
+   <div id="rangefield"><span>Hier Reinlegen</span><span>Zum Menge ändern</span></div>
    <div id="wrapper">
-      <canvas class="box" width="800" height="600" style="border:1px solid #000000;">
-      </canvas>
+      <canvas class="box" width="800" height="600" style="border:1px solid #000000;"></canvas>
    </div>
    <input id="range" type="range" min="1" max="10" step="1.0" value="0">
    <button id="resetRange">Regler zurücksetzten</button>

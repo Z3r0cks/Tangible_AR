@@ -4,6 +4,25 @@
    border: solid 2px black;
 }
 
+h1,
+h2 {
+   position: absolute;
+   left: 402px;
+   font-family: monospace;
+}
+h1 {
+   top: -14px;
+}
+
+h2 {
+   top: 28px;
+}
+
+h2 > span {
+   color: #b0c393;
+   font-style: oblique;
+}
+
 .box {
    /* position: absolute; */
    border: solid 2px rgb(0, 0, 0);
@@ -11,6 +30,13 @@
 
 #rangefield {
    position: absolute;
+   display: flex;
+   justify-content: space-evenly;
+   align-items: center;
+   flex-direction: column;
+   font-size: 27px;
+   font-family: monospace;
+   color: aliceblue;
    top: 0;
    left: 0;
    width: 300px;
@@ -27,7 +53,40 @@
       linear-gradient(to top, #666666 4px, transparent 4px) 100% 100%;
    background-repeat: no-repeat;
    background-size: 20px 20px;
-   background-color: #8ac626;
+   background-color: #b0c393;
+}
+
+#foodSpace {
+   position: absolute;
+   display: flex;
+   flex-direction: column;
+   background-color: #b0c393;
+   width: 236px;
+   right: 0;
+   height: 100%;
+}
+
+#foodSpace > div {
+   display: flex;
+   justify-content: space-evenly;
+   height: 100%;
+   align-items: center;
+}
+
+.foodField {
+   display: flex;
+   width: 50px;
+   height: 50px;
+   border-radius: 25px;
+   background-color: #545e44;
+   width: 90px;
+   height: 90px;
+   border-radius: 51px;
+}
+
+.dataItem {
+   display: flex;
+   justify-content: space-between;
 }
 
 #wrapper {
@@ -38,8 +97,14 @@
 }
 
 .dataWrapper {
+   background-color: #8ac626;
+   border-radius: 6px;
+   font-size: 18px;
+   padding: 2px;
+   color: white;
    position: absolute;
-   width: 200px;
+   width: 190px;
+   z-index: 1;
 }
 
 #range {

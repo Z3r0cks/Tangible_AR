@@ -99,29 +99,8 @@ def object_detection(webcam_resolution=[1280, 720]):
 
         socketio.emit('new detections', detections_list)
 
-# @ socketio.on('connect')
-# def test_connect():
-#     print("Client connected")
-
-
-# @ socketio.on('disconnect')
-# def test_disconnect():
-#     print("Client disconnected")
 
 if __name__ == '__main__':
     object_detection_thread = threading.Thread(target=object_detection)
     object_detection_thread.start()
     socketio.run(app)
-
-
-# Detections(
-#     xyxy=array(
-#         [
-#             [656.02,      159.37,      903.36,      377.04],
-#             [275.31,      78.847,      498.65,      298.82],
-#             [511.22,       318.1,      612.15,      508.27]
-#         ], dtype=float32),
-#     mask=None,
-#     confidence=array([0.91539,     0.90639,      0.8381], dtype=float32),
-#     class_id=array([3, 2, 7]),
-#     tracker_id=None)

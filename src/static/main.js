@@ -134,7 +134,7 @@ function drawDataBox(name, data, measurement, argLeft, argTop, boxWidth, box, id
    value.classList.add('value');
    value.innerHTML = pastBoxes[id] == undefined ? setInnerHtml(id, 1) : setInnerHtml(id, pastBoxes[id]);
 
-   dataWrapper.innerHTML = `<div class="title">${name}</div><div class="dataBox"></div><div class="value">${value.innerHTML}</div>`;
+   dataWrapper.innerHTML = `<div class="title">${name}</div><div class="value">${value.innerHTML}</div>`;
    setDataBoxPosition((argLeft + boxWidth), argTop, dataWrapper);
 
    wrapper.appendChild(dataWrapper);
@@ -146,9 +146,10 @@ function setInnerHtml(id, value) {
    for (let key in data) {
       const content = value * parseFloat(data[key]);
       let item = document.createElement('li');
+      item.setAttribute('class', 'dataItem');
       if (key == "Food_ID") continue;
       if (key != "Food_Name") {
-         item.textContent = `${key}: ${content}${measurement}`;
+         item.innerHTML = `<span>${key}:</span> <span> ${content}${measurement}</span>`;
       } else {
          item.textContent = `${data[key]} auf ${value * 100}g`;
       }
