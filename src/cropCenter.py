@@ -1,7 +1,7 @@
 import cv2
 import os
 
-target = "cheese"
+target = "allergies"
 image_path = f"img/rawImgs/{target}"
 output_folder = f"img/croppedImgs/{target}"
 

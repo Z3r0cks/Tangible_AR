@@ -1,6 +1,5 @@
 import os
 
-
 def rename_images(folder_path, frefix):
     files = os.listdir(folder_path)
     i = 1
@@ -15,11 +14,10 @@ def rename_images(folder_path, frefix):
         i += 1
 
 
-object = "cheese"
+object = "allergies"
 
 # prenotation for python
 
-
-folder_path = f"./img/croppedImgs/{object}"
+folder_path = f"./img/rawImgs/{object}"
 prefix = f"{object}_img_"
 rename_images(folder_path, prefix)

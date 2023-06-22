@@ -9,14 +9,15 @@
    <script defer src="{{ url_for('static', filename='main.js') }}"></script>
    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
    <link rel="stylesheet" href="../static/style.css">
-
+   
    <title>Document</title>
 </head>
 
 <body>
    <h1>Frühstücks-Check</h1>
    <h2>wie<span id="titleType"> nährreich </span>startest Du in den Tag?</h2>
-   <div id="foodSpace">
+   <div id="infoField"></div>
+   <!-- <div id="foodSpace">
       <div>
          <span class="foodField"></span>
          <span class="foodField"></span>
@@ -33,7 +34,7 @@
          <span class="foodField"></span>
          <span class="foodField"></span>
       </div>
-   </div>
+   </div> -->
    <div id="rangefield"><span>Hier Reinlegen</span><span>Zum Menge ändern</span></div>
    <div id="wrapper">
       <canvas class="box" width="800" height="600" style="border:1px solid #000000;"></canvas>

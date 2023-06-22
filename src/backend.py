@@ -18,6 +18,12 @@ ZOME_POLYGON = np.array([
     [1280, 720],    # Bottom right
     [0, 720]        # Bottom left
 ])
+# ZOME_POLYGON = np.array([
+#     [250, 250],         # Top left
+#     [1030, 250],      # Top right
+#     [1030, 470],    # Bottom right
+#     [250, 470]        # Bottom left
+# ])
 
 
 @app.route('/')
@@ -32,7 +38,8 @@ def object_detection(webcam_resolution=[1280, 720]):
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, frame_width)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, frame_height)
 
-    model = YOLO("model/modelV2.pt")
+    model = YOLO("model/modelV3.pt")
+    # model = YOLO("model/modelV2.pt")
 
     box_annotations = sv.BoxAnnotator(
         thickness=2,
@@ -72,32 +79,55 @@ def object_detection(webcam_resolution=[1280, 720]):
         # Emit a message with detected objects to the client.
         detections_list = []
 
+        table = "home"
+
         for i in range(len(detections.class_id)):
 
-            # get infos from detections and save them in a list
-            detection_info = {
-                "class_id": int(detections.class_id[i]),
-                "box_coordinates": [float(coord) for coord in detections.xyxy[i]],
-                "name": "Nährstoffe"
-            }
-            detections_list.append(detection_info)
+            for id in detections.class_id:
+                if (id == 0):
+                    table = "alleriges"
+                elif (id == 6):
+                    table = "home"
+                elif (id == 8):
+                    table = "minerals"
+                elif (id == 9):
+                    table = "nutrients"
+                elif (id == 12):
+                    table = "trace_elements"
+                elif (id == 13):
+                    table = "vitamins"
 
-            # database access for the information of the detected object
-            conn = sqlite3.connect('food_data.sqlite')
-            conn.row_factory = sqlite3.Row
+            if (table != "home"):
 
-            c = conn.cursor()
-            c.execute('SELECT * FROM food_nutrients WHERE Food_ID=?',
-                      (int(detections.class_id[i]),))
-            result = c.fetchone()
+                if (i != 0 and i != 6 and i != 8 and i != 9 and i != 12 and i != 13):
+                    # get infos from detections and save them in a list
+                    detection_info = {
+                        "class_id": int(detections.class_id[i]),
+                        "box_coordinates": [float(coord) for coord in detections.xyxy[i]],
+                        "name": table
+                    }
+                    detections_list.append(detection_info)
 
-            c.execute("PRAGMA table_info(meineTabelle);")
+                    conn = sqlite3.connect('food_data.sqlite')
 
-            if result is not None:
-                detection_info["data"] = dict(result)
-            conn.close()
+                    # set the row_factory to sqlite3.Row
+                    conn.row_factory = sqlite3.Row
 
-        socketio.emit('new detections', detections_list)
+                    c = conn.cursor()
+
+                    c.execute('SELECT * FROM food_' + table +
+                              ' WHERE Food_ID=?', (int(detections.class_id[i]),))
+                    result = c.fetchone()
+
+                    if result is not None:
+                        detection_info["data"] = dict(result)
+
+                    conn.close()    
+
+        if (table == "home"):
+            socketio.emit('new detections', "home")
+        else:
+            socketio.emit('new detections', detections_list)
 
 
 if __name__ == '__main__':

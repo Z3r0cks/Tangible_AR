@@ -3,6 +3,8 @@ const objectsDiv = document.getElementById('cameraZone');
 const wrapper = document.getElementById('wrapper');
 const range = document.getElementById('range');
 const box = document.querySelector('.box');
+const infoField = document.getElementById('infoField');
+
 let newBoxes = [];
 let oldBoxes = [];
 let pastBoxes = [];
@@ -41,8 +43,15 @@ socket.on('connect', () => {
 socket.on('new detections', function (detections) {
    // clear unactive objects
    clearUnactiveObjects();
-
    // remove old boxes
+   if (detections == "home") {
+      infoField.innerHTML = `<div class="home"><h1>Willkommen</h1><p>Bitte wählen sie eine Würfelseite aus</p></div>`;
+      document.querySelectorAll('.box').forEach(box => {
+         box.nextElementSibling.remove();
+         box.remove();
+      });
+      return;
+   }
    removeUnmatchedCanvases(detections);
 
    // main function to draw boxes
@@ -54,6 +63,7 @@ socket.on('new detections', function (detections) {
             break;
       }
       drawBox(x1, y1, x2, y2, name, data, measurement, class_id);
+      setDataInInfoField(detections);
    });
 
    // push old boxes to array
@@ -124,38 +134,53 @@ function drawBox(xa, ya, xb, yb, name, data, measurement, id) {
 
    addBox(id, box, 1);
    wrapper.appendChild(box);
-   drawDataBox(name, data, measurement, boxStartX, boxStartY, (boxWidth + 5), box, id)
+   drawDataBox(name, data, measurement, boxStartX, boxStartY, box, id)
 }
 
-function drawDataBox(name, data, measurement, argLeft, argTop, boxWidth, box, id) {
+function drawDataBox(name, data, measurement, argLeft, argTop, box, id) {
    const dataWrapper = document.createElement('div');
    dataWrapper.classList.add('dataWrapper');
    const value = document.createElement('div');
    value.classList.add('value');
    value.innerHTML = pastBoxes[id] == undefined ? setInnerHtml(id, 1) : setInnerHtml(id, pastBoxes[id]);
 
-   dataWrapper.innerHTML = `<div class="title">${name}</div><div class="value">${value.innerHTML}</div>`;
-   setDataBoxPosition((argLeft + boxWidth), argTop, dataWrapper);
+   dataWrapper.innerHTML = `<div class="value">${value.innerHTML}</div>`;
+   setNameBoxPosition(argLeft, (argTop + box.height + 4), dataWrapper);
 
    wrapper.appendChild(dataWrapper);
 }
 
+
+function setDataInInfoField(detections) {
+   let aggregatedData = {};
+   for (let detection of detections) {
+      for (let key in detection.data) {
+         if (key == "Food_Name") continue
+         if (key == "Food_ID") continue
+         if (!(key in aggregatedData)) {
+            aggregatedData[key] = 0;
+         }
+         let value = 1;
+         try {
+            value = document.getElementById(detection.class_id).getAttribute('value');
+         } catch { continue; }
+         aggregatedData[key] += parseFloat(detection.data[key] * value);
+      }
+   }
+   let html = '<div class="dataTableWrapper">' + detections[0].name.toUpperCase() + '</div><table class="table-container">';
+   for (let key in aggregatedData) {
+      html += '<tr><td>' + key + '</td><td class="dataItem">' + aggregatedData[key] + '</td></tr>';
+   }
+   html += '</table></div>';
+   infoField.innerHTML = html;
+}
+
 function setInnerHtml(id, value) {
    const data = boxValues[id][0];
-   let listElement = document.createElement('ul');
    for (let key in data) {
-      const content = value * parseFloat(data[key]);
-      let item = document.createElement('li');
-      item.setAttribute('class', 'dataItem');
-      if (key == "Food_ID") continue;
-      if (key != "Food_Name") {
-         item.innerHTML = `<span>${key}:</span> <span> ${content}${measurement}</span>`;
-      } else {
-         item.textContent = `${data[key]} auf ${value * 100}g`;
-      }
-      listElement.appendChild(item);
+      if (key != "Food_Name") continue
+      return `${data[key]} auf ${value * 100}g`;
    }
-   return listElement.innerHTML;
 }
 
 function findPosition(overlapResult, pos) {
@@ -163,7 +188,7 @@ function findPosition(overlapResult, pos) {
    return pos;
 }
 
-function setDataBoxPosition(left, top, dataWrapper) {
+function setNameBoxPosition(left, top, dataWrapper) {
    dataWrapper.style.left = left + "px";
    dataWrapper.style.top = top + "px";
 }
@@ -255,6 +280,17 @@ function removeCanvasAndSibling(canvas) {
 }
 
 // function isOverlapping(box1) {
+
+
+// Calcium:"9"
+// Chlorid:"30"
+// Food_ID:"11"
+// Food_Name:"Tomate"
+// Kalium:"235"
+// Magnesium:"11"
+// Natrium:"3"
+// Phosphor:"22"
+// Schwefel:"11"
 //    let avoidArray = [];
 //    let buffer = 50;
 //    let horizontalBuffer = 75;
