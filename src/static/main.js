@@ -4,6 +4,7 @@ const wrapper = document.getElementById('wrapper');
 const range = document.getElementById('range');
 const box = document.querySelector('.box');
 const infoField = document.getElementById('infoField');
+const title = document.getElementById('title');
 
 let newBoxes = [];
 let oldBoxes = [];
@@ -50,16 +51,37 @@ socket.on('new detections', function (detections) {
          removeCanvasAndSibling(box);
       });
    } else {
-      console.log(pastBoxes);
       removeUnmatchedCanvases(detections);
+
 
       // main function to draw boxes
       detections.forEach(({ box_coordinates: [x1, y1, x2, y2], name, data, class_id }) => {
          boxValues[class_id] = [data, name]
          switch (name) {
-            case "nitrate":
+            case "nutrients":
                measurement = "mg";
+               title.innerHTML = 'wie <span id="titleType"> nährreich </span> startest Du in den Tag?';
+               document.getElementById('titleType').style.color = "#d86c0d";
                break;
+            case "vitamins":
+               measurement = "μg";
+               title.innerHTML = 'wie <span id="titleType"> vitaminreich </span> startest Du in den Tag?';
+               document.getElementById('titleType').style.color = "#f2ef30";
+
+               break;
+            case "minerals":
+               measurement = "μg";
+               title.innerHTML = 'Wie viele <span id="titleType"> Mineralien </span> hat dein Frühstück?';
+               document.getElementById('titleType').style.color = "#ff6600";
+               break;
+            case "trace_elements":
+               measurement = "μg";
+               title.innerHTML = 'Wie viele <span id="titleType"> Spurenelemente </span> hat dein Frühstück?';
+               document.getElementById('titleType').style.color = "#585858";
+               break;
+            case "allergens":
+               title.innerHTML = 'Wie <span id="titleType"> verträglich </span> ist dein Frühstück?';
+               document.getElementById('titleType').style.color = "#f6c397";
          }
          drawBox(x1, y1, x2, y2, name, data, measurement, class_id);
          if (name == "allergens") {
@@ -94,7 +116,7 @@ function objectOnRangeField(canvas) {
    // check if object is on range field
    const { left, top } = canvas.getBoundingClientRect();
    const { offsetWidth, offsetHeight } = canvas;
-   const rangeDistance = 400;
+   const rangeDistance = 500;
 
    if (left <= (rangeDistance - offsetWidth) && top <= (rangeDistance - offsetHeight)) {
       range.disabled = false;
@@ -127,10 +149,12 @@ function drawBox(xa, ya, xb, yb, name, data, measurement, id) {
    box.classList.add('box');
    const ctx = box.getContext("2d");
 
+   const offsetY = 90;
+   const offsetYScale = 0.001;
    const screenW = window.innerWidth;
    const screenH = window.innerHeight;
    const camW = 1280;
-   const camH = 700;
+   const camH = 720;
 
    const scaleX = screenW / camW;
    const scaleY = screenH / camH;
@@ -138,12 +162,7 @@ function drawBox(xa, ya, xb, yb, name, data, measurement, id) {
    const boxWidth = Math.floor(xb * scaleX) - Math.floor(xa * scaleX);
    const boxHeight = Math.floor(yb * scaleY) - Math.floor(ya * scaleY);
    const boxStartX = Math.floor(xa * scaleX);
-   const boxStartY = Math.floor(ya * scaleY);
-
-   // const boxWidth = Math.floor(xb) - Math.floor(xa);
-   // const boxHeight = Math.floor(yb) - Math.floor(ya);
-   // const boxStartX = Math.floor(xa);
-   // const boxStartY = Math.floor(ya);
+   const boxStartY = Math.floor(ya * scaleY - ya * scaleY * 0 + offsetY);
    const newObj = removeIfChanged(id, boxStartX, boxStartY, boxWidth, boxHeight);
 
    if (!newObj) return;
@@ -199,7 +218,7 @@ function setDataInInfoField(detections) {
    }
    let html = '<div class="dataTableWrapper">' + translateDiceName(detections[0].name) + '</div><table class="table-container">';
    for (let key in aggregatedData) {
-      html += '<tr><td style="padding-right: 50px;">' + key + '</td><td class="dataItem">' + aggregatedData[key] + '</td></tr>';
+      html += '<tr><td style="padding-right: 50px;">' + key + '</td><td class="dataItem">' + aggregatedData[key] + measurement + '</td></tr>';
    }
    html += '</table></div>';
    infoField.innerHTML = html;
@@ -212,13 +231,7 @@ function setDataInInfoFieldForAllergens(detections) {
          if (key == "Food_Name") continue
          if (key == "Food_ID") continue
          html += '<tr><td style="padding-right: 50px;">' + key + '</td><td class="dataItem">' + (detection.data[key] == 1 ? "ja" : "Nein") + '</td></tr>';
-         // try {
-         //    value = document.getElementById(detection.class_id).getAttribute('value');
-         // } catch { continue; }
-         // aggregatedData[key] += parseFloat(detection.data[key] * value);
       }
-   }
-   for (let key in detections) {
    }
    html += '</table></div>';
    infoField.innerHTML = html;

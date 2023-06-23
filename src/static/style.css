@@ -145,7 +145,7 @@ body {
 .table-container {
    margin: 25px 0 15px 15px;
    font-size: 25px;
-   color: #b0c393;
+   /* color: #7fd105; */
    align-items: center;
    display: flex;
    justify-content: space-between;

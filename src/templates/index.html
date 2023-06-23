@@ -8,17 +8,17 @@
    <script defer src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
    <script defer src="{{ url_for('static', filename='main.js') }}"></script>
    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-   <link rel="stylesheet" href="../static/style.css">
-   
+   <!-- <link rel="stylesheet" href="../static/style.css"> -->
+
    <title>Document</title>
 </head>
 
 <body>
    <h1>Frühstücks-Check</h1>
-   <h2>wie<span id="titleType"> nährreich </span>startest Du in den Tag?</h2>
+   <h2 id="title">wie startest Du in den Tag?</h2>
    <div id="infoField"></div>
    <!-- <div id="foodSpace">
-      <div>
+      <div> 
          <span class="foodField"></span>
          <span class="foodField"></span>
       </div>
