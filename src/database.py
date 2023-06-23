@@ -67,18 +67,16 @@ food_trace_elements = [
 ]
 
 food_allergens = [
-    (1, "Banane", "Nicht enthalten", "Nicht enthalten", "Enthalten",
-     "Ja (aber nur Bio Bananen)", "Ja (aber nur Bio Bananen)"),
-    (2, "Brot", "Enthalten", "Nicht enthalten", "Enthalten",
-     "Ja (außer sie enthalten E471, dann eventuell)", "Ja (außer sie enthalten E471, dann eventuell)"),
-    (3, "Butter", "Nicht enthalten", "Enthalten", "Nicht enthalten", "Nein", "Ja"),
-    (4, "Emmentaler", "Nicht enthalten",
-     "Nicht enthalten", "Nicht enthalten", "Nein", "Ja"),
-    (5, "Ei (gegart)", "Nicht enthalten",
-     "Nicht enthalten", "Nicht enthalten", "Nein", "Ja"),
-    (7, "Milch", "Nicht enthalten", "Enthalten", "Nicht enthalten", "Nein", "Ja"),
-    (10, "Salami", "Nicht enthalten", "Nicht enthalten", "Enthalten", "Nein", "Nein"),
-    (11, "Tomate", "Nicht enthalten", "Nicht enthalten", "Enthalten", "Ja", "Ja"),
+    (1, "Banane", False, False, True, True, True),
+    (2, "Brot", True, False, True, True, True),
+    (3, "Butter", False, True, False, False, True),
+    (4, "Emmentaler", False,
+     False, False, False, True),
+    (5, "Ei (gegart)", False,
+     False, False, False, True),
+    (7, "Milch", False, True, False, False, True),
+    (10, "Salami", False, False, True, False, False),
+    (11, "Tomate", False, False, True, True, True),
     ("Food_ID", "Food_Name", "Gluten", "Lactose",
      "Fructose", "Vegan", "Vegetarisch"),
     ("")

@@ -85,7 +85,7 @@ def object_detection(webcam_resolution=[1280, 720]):
 
             for id in detections.class_id:
                 if (id == 0):
-                    table = "alleriges"
+                    table = "allergens"
                 elif (id == 6):
                     table = "home"
                 elif (id == 8):
@@ -98,8 +98,8 @@ def object_detection(webcam_resolution=[1280, 720]):
                     table = "vitamins"
 
             if (table != "home"):
-
-                if (i != 0 and i != 6 and i != 8 and i != 9 and i != 12 and i != 13):
+                id = detections.class_id[i]
+                if (id != 0 and id != 6 and id != 8 and id != 9 and id != 12 and id != 13):
                     # get infos from detections and save them in a list
                     detection_info = {
                         "class_id": int(detections.class_id[i]),
@@ -122,7 +122,7 @@ def object_detection(webcam_resolution=[1280, 720]):
                     if result is not None:
                         detection_info["data"] = dict(result)
 
-                    conn.close()    
+                    conn.close()
 
         if (table == "home"):
             socketio.emit('new detections', "home")

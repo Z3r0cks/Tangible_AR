@@ -47,39 +47,43 @@ socket.on('new detections', function (detections) {
    if (detections == "home") {
       infoField.innerHTML = `<div class="home"><h1>Willkommen</h1><p>Bitte wählen sie eine Würfelseite aus</p></div>`;
       document.querySelectorAll('.box').forEach(box => {
-         box.nextElementSibling.remove();
-         box.remove();
+         removeCanvasAndSibling(box);
       });
-      return;
+   } else {
+      console.log(pastBoxes);
+      removeUnmatchedCanvases(detections);
+
+      // main function to draw boxes
+      detections.forEach(({ box_coordinates: [x1, y1, x2, y2], name, data, class_id }) => {
+         boxValues[class_id] = [data, name]
+         switch (name) {
+            case "nitrate":
+               measurement = "mg";
+               break;
+         }
+         drawBox(x1, y1, x2, y2, name, data, measurement, class_id);
+         if (name == "allergens") {
+            setDataInInfoFieldForAllergens(detections);
+         }
+         else
+            setDataInInfoField(detections);
+      });
+
+      // push old boxes to array
+      newBoxes.forEach(([id, box, value]) => {
+         const { top, left, width, height } = box.getBoundingClientRect();
+         oldBoxes.push({ id, box, top, left, width, height, value });
+      });
+
+      // check if some boxes are on range field for data scaling
+      wrapper.querySelectorAll('canvas').forEach(box => {
+         objectOnRangeField(box);
+      });
+
+      // reset oldBoxes and newBoxes
+      oldBoxes = [];
+      newBoxes = [];
    }
-   removeUnmatchedCanvases(detections);
-
-   // main function to draw boxes
-   detections.forEach(({ box_coordinates: [x1, y1, x2, y2], name, data, class_id }) => {
-      boxValues[class_id] = [data, name]
-      switch (name) {
-         case "Nährstoffe":
-            measurement = "mg";
-            break;
-      }
-      drawBox(x1, y1, x2, y2, name, data, measurement, class_id);
-      setDataInInfoField(detections);
-   });
-
-   // push old boxes to array
-   newBoxes.forEach(([id, box, value]) => {
-      const { top, left, width, height } = box.getBoundingClientRect();
-      oldBoxes.push({ id, box, top, left, width, height, value });
-   });
-
-   // check if some boxes are on range field for data scaling
-   wrapper.querySelectorAll('canvas').forEach(box => {
-      objectOnRangeField(box);
-   });
-
-   // reset oldBoxes and newBoxes
-   oldBoxes = [];
-   newBoxes = [];
 });
 
 function objectOnRangeField(canvas) {
@@ -106,15 +110,40 @@ function objectOnRangeField(canvas) {
    }
 }
 
+function pushToPastBoxes(id, value) {
+   let newBox = true;
+   pastBoxes.forEach(el => {
+      if (id == el[0]) {
+         updatePastBoxesValue(el[0], value)
+         newBox = false;
+      }
+   });
+   if (!newBox) return;
+   pastBoxes[id] = value;
+}
+
 function drawBox(xa, ya, xb, yb, name, data, measurement, id) {
    const box = document.createElement('canvas');
    box.classList.add('box');
    const ctx = box.getContext("2d");
 
-   const boxWidth = Math.floor(xb) - Math.floor(xa);
-   const boxHeight = Math.floor(yb) - Math.floor(ya);
-   const boxStartX = Math.floor(xa);
-   const boxStartY = Math.floor(ya);
+   const screenW = window.innerWidth;
+   const screenH = window.innerHeight;
+   const camW = 1280;
+   const camH = 700;
+
+   const scaleX = screenW / camW;
+   const scaleY = screenH / camH;
+
+   const boxWidth = Math.floor(xb * scaleX) - Math.floor(xa * scaleX);
+   const boxHeight = Math.floor(yb * scaleY) - Math.floor(ya * scaleY);
+   const boxStartX = Math.floor(xa * scaleX);
+   const boxStartY = Math.floor(ya * scaleY);
+
+   // const boxWidth = Math.floor(xb) - Math.floor(xa);
+   // const boxHeight = Math.floor(yb) - Math.floor(ya);
+   // const boxStartX = Math.floor(xa);
+   // const boxStartY = Math.floor(ya);
    const newObj = removeIfChanged(id, boxStartX, boxStartY, boxWidth, boxHeight);
 
    if (!newObj) return;
@@ -126,6 +155,7 @@ function drawBox(xa, ya, xb, yb, name, data, measurement, id) {
 
    boxValue = pastBoxes[id] == undefined ? 1 : pastBoxes[id];
    box.setAttribute('value', boxValue);
+   box.setAttribute('class', "is-hidden box");
    const top = box.style.top = boxStartY + "px";
 
    ctx.beginPath();
@@ -145,7 +175,7 @@ function drawDataBox(name, data, measurement, argLeft, argTop, box, id) {
    value.innerHTML = pastBoxes[id] == undefined ? setInnerHtml(id, 1) : setInnerHtml(id, pastBoxes[id]);
 
    dataWrapper.innerHTML = `<div class="value">${value.innerHTML}</div>`;
-   setNameBoxPosition(argLeft, (argTop + box.height + 4), dataWrapper);
+   setNameBoxPosition(argLeft, (argTop + box.height), dataWrapper);
 
    wrapper.appendChild(dataWrapper);
 }
@@ -167,9 +197,28 @@ function setDataInInfoField(detections) {
          aggregatedData[key] += parseFloat(detection.data[key] * value);
       }
    }
-   let html = '<div class="dataTableWrapper">' + detections[0].name.toUpperCase() + '</div><table class="table-container">';
+   let html = '<div class="dataTableWrapper">' + translateDiceName(detections[0].name) + '</div><table class="table-container">';
    for (let key in aggregatedData) {
-      html += '<tr><td>' + key + '</td><td class="dataItem">' + aggregatedData[key] + '</td></tr>';
+      html += '<tr><td style="padding-right: 50px;">' + key + '</td><td class="dataItem">' + aggregatedData[key] + '</td></tr>';
+   }
+   html += '</table></div>';
+   infoField.innerHTML = html;
+}
+
+function setDataInInfoFieldForAllergens(detections) {
+   let html = '<div class="dataTableWrapper">' + translateDiceName(detections[0].name) + '</div><table class="table-container">';
+   for (let detection of detections) {
+      for (let key in detection.data) {
+         if (key == "Food_Name") continue
+         if (key == "Food_ID") continue
+         html += '<tr><td style="padding-right: 50px;">' + key + '</td><td class="dataItem">' + (detection.data[key] == 1 ? "ja" : "Nein") + '</td></tr>';
+         // try {
+         //    value = document.getElementById(detection.class_id).getAttribute('value');
+         // } catch { continue; }
+         // aggregatedData[key] += parseFloat(detection.data[key] * value);
+      }
+   }
+   for (let key in detections) {
    }
    html += '</table></div>';
    infoField.innerHTML = html;
@@ -183,6 +232,27 @@ function setInnerHtml(id, value) {
    }
 }
 
+function translateDiceName(engName) {
+   let deName = "";
+   switch (engName) {
+      case "nutrients":
+         deName = "Nährstoffe";
+         break;
+      case "vitamins":
+         deName = "Vitamine";
+         break;
+      case "minerals":
+         deName = "Mineralstoffe";
+         break;
+      case "trace_elements":
+         deName = "Spurenelemente";
+         break;
+      case "allergens":
+         deName = "Allergene";
+         break;
+   }
+   return deName;
+}
 function findPosition(overlapResult, pos) {
    pos = overlapResult.some(subArray => subArray.includes(pos)) ? overlapResult.findIndex(subArray => subArray.includes(pos)) : -1;
    return pos;
@@ -245,18 +315,6 @@ function checkOldState(objId) {
    return value;
 }
 
-function pushToPastBoxes(id, value) {
-   let newBox = true;
-   pastBoxes.forEach(el => {
-      if (id == el[0]) {
-         updatePastBoxesValue(el[0], value)
-         newBox = false;
-      }
-   });
-   if (!newBox) return;
-   pastBoxes[id] = value;
-}
-
 function updatePastBoxesValue(id, value) {
    pastBoxes.forEach(el => {
       if (id == el[0]) el[1] = value;
@@ -278,76 +336,3 @@ function removeCanvasAndSibling(canvas) {
    canvas.nextElementSibling.remove();
    canvas.remove();
 }
-
-// function isOverlapping(box1) {
-
-
-// Calcium:"9"
-// Chlorid:"30"
-// Food_ID:"11"
-// Food_Name:"Tomate"
-// Kalium:"235"
-// Magnesium:"11"
-// Natrium:"3"
-// Phosphor:"22"
-// Schwefel:"11"
-//    let avoidArray = [];
-//    let buffer = 50;
-//    let horizontalBuffer = 75;
-//    let verticalBuffer = 75;
-//    let rect1 = box1.getBoundingClientRect();
-
-//    newBoxes.forEach(box2 => {
-//       if (box1 == box2[1]) return;
-//       let rect2 = box2[1].getBoundingClientRect();
-
-//       const horizontalClose = Math.abs(rect1.right - rect2.left) <= horizontalBuffer || Math.abs(rect1.left - rect2.right) <= horizontalBuffer || Math.abs(rect1.right - rect2.right) <= horizontalBuffer || Math.abs(rect1.left - rect2.left) <= horizontalBuffer
-//       const verticalClose = Math.abs(rect1.bottom - rect2.top) <= verticalBuffer || Math.abs(rect1.top - rect2.bottom) <= verticalBuffer || Math.abs(rect1.bottom - rect2.bottom) <= verticalBuffer || Math.abs(
-//          rect1.top - rect2.top) <= verticalBuffer;
-
-//       if (horizontalClose && verticalClose) {
-//          const valueLeft = Math.abs(rect1.right - rect2.left);
-//          const valueRight = Math.abs(rect1.left - rect2.right);
-//          const valueTop = Math.abs(rect1.bottom - rect2.top);
-//          const valueBottom = Math.abs(rect1.top - rect2.bottom);
-//          if (valueLeft <= buffer) avoidArray.push([valueLeft, "left"]);
-//          if (valueRight <= buffer) avoidArray.push([valueRight, "right"]);
-//          if (valueTop <= buffer) avoidArray.push([valueTop, "top"]);
-//          if (valueBottom <= buffer) avoidArray.push([valueBottom, "bottom"]);
-//       }
-//    });
-//    return avoidArray;
-// }
-
-
-
-  // let overlapResult = isOverlapping(box);
-   // let leftPos = findPosition(overlapResult, "left");
-   // let rightPos = findPosition(overlapResult, "right");
-   // let topPos = findPosition(overlapResult, "top");
-   // let bottomPos = findPosition(overlapResult, "bottom");
-
-   // let rect = wrapper.getBoundingClientRect();
-   // let centerX = rect.left + rect.width / 2;
-   // let centerY = rect.top + rect.height / 2;
-
-   // if (overlapResult.length == 0) {
-   // } else if (leftPos != -1 && topPos == -1 && bottomPos == -1) {
-   //    setDataBoxPosition((argLeft - 150), argTop, dataWrapper);
-   // } else if (leftPos != -1 && topPos != -1 && bottomPos == -1) {
-   //    setDataBoxPosition((argLeft - 150), (argTop - overlapResult[leftPos][0] / 1.5), dataWrapper);
-   // }
-   // if (leftPos != -1 && topPos == -1 && bottomPos != -1) {
-   // }
-   // if (leftPos == -1 && topPos != -1 && bottomPos == -1) {
-   // }
-   // if (leftPos == -1 && topPos == -1 && bottomPos != -1) {
-   // }
-   // if (el.includes("left")) {
-   // }
-   // if (el.includes("left") && overlapResult.includes("top")) {
-   //    setDataBoxPosition((left - 150), (top - 50), dataBox);
-   // }
-
-   // dataWrapper.append(dataBox, value);
-   // dataWrapper.innerHTML = myDiv;
