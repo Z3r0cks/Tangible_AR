@@ -32,7 +32,6 @@ document.getElementById('resetValue').addEventListener('click', () => {
    });
 });
 
-
 function resetRange() {
    range.value = 0;
 }
@@ -42,54 +41,59 @@ socket.on('connect', () => {
 });
 
 socket.on('new detections', function (detections) {
+   // console.log(detections);
    // clear unactive objects
    clearUnactiveObjects();
-   // remove old boxes
-   if (detections == "home") {
-      infoField.innerHTML = `<div class="home"><h1>Willkommen</h1><p>Bitte wählen sie eine Würfelseite aus</p></div>`;
+
+   if (detections == "home" || detections.length == 0) {
+      console.log("test");
+      infoField.innerHTML = `<h3>Home</h3>
+      <p>Platziere ein Lebensmittel auf der linken Seite und entscheide dich für eine Würfelseite um dir die Daten deines Frühstücks anzeigen zu lassen.</p>`;
+
+      title.innerHTML = 'Wie <span id="titleType"> gesund </span> ist dein Frühstück?';
+      document.getElementById('titleType').style.color = "#8ac626";
       document.querySelectorAll('.box').forEach(box => {
          removeCanvasAndSibling(box);
       });
+
    } else {
       removeUnmatchedCanvases(detections);
-
 
       // main function to draw boxes
       detections.forEach(({ box_coordinates: [x1, y1, x2, y2], name, data, class_id }) => {
          boxValues[class_id] = [data, name]
          switch (name) {
             case "nutrients":
-               measurement = "mg";
-               title.innerHTML = 'wie <span id="titleType"> nährreich </span> startest Du in den Tag?';
-               document.getElementById('titleType').style.color = "#d86c0d";
+               setValueForDataTypes("mg", 'wie <span id="titleType"> nährreich </span> startest Du in den Tag?', "#d86c0d");
                break;
-            case "vitamins":
-               measurement = "μg";
-               title.innerHTML = 'wie <span id="titleType"> vitaminreich </span> startest Du in den Tag?';
-               document.getElementById('titleType').style.color = "#f2ef30";
 
+            case "vitamins":
+               setValueForDataTypes("μg", 'wie <span id="titleType"> vitaminreich </span> startest Du in den Tag?', "#f2ef30");
                break;
+
             case "minerals":
-               measurement = "μg";
-               title.innerHTML = 'Wie viele <span id="titleType"> Mineralien </span> hat dein Frühstück?';
-               document.getElementById('titleType').style.color = "#ff6600";
+               setValueForDataTypes("μg", 'wie <span id="titleType"> mineralreich </span> startest Du in den Tag?', "#ff6600");
                break;
+
             case "trace_elements":
-               measurement = "μg";
-               title.innerHTML = 'Wie viele <span id="titleType"> Spurenelemente </span> hat dein Frühstück?';
-               document.getElementById('titleType').style.color = "#585858";
+               setValueForDataTypes("μg", 'Wie viele <span id="titleType"> Spurenelemente </span> hat dein Frühstück?', "#585858");
                break;
+
             case "allergens":
-               title.innerHTML = 'Wie <span id="titleType"> verträglich </span> ist dein Frühstück?';
-               document.getElementById('titleType').style.color = "#f6c397";
+               setValueForDataTypes("", 'Wie <span id="titleType"> verträglich </span> ist dein Frühstück?', "#f6c397");
          }
          drawBox(x1, y1, x2, y2, name, data, measurement, class_id);
-         if (name == "allergens") {
-            setDataInInfoFieldForAllergens(detections);
-         }
-         else
+         if (name != "allergens")
             setDataInInfoField(detections);
+         else
+            setDataInInfoFieldForAllergens(detections);
       });
+
+      function setValueForDataTypes(measurementType, text, color) {
+         measurement = measurementType;
+         title.innerHTML = text;
+         document.getElementById('titleType').style.color = color;
+      }
 
       // push old boxes to array
       newBoxes.forEach(([id, box, value]) => {
@@ -98,9 +102,12 @@ socket.on('new detections', function (detections) {
       });
 
       // check if some boxes are on range field for data scaling
-      wrapper.querySelectorAll('canvas').forEach(box => {
-         objectOnRangeField(box);
-      });
+      if (wrapper.querySelectorAll('canvas').length == 0)
+         range.disabled = true;
+      else
+         wrapper.querySelectorAll('canvas').forEach(box => {
+            objectOnRangeField(box);
+         });
 
       // reset oldBoxes and newBoxes
       oldBoxes = [];
@@ -111,8 +118,6 @@ socket.on('new detections', function (detections) {
 function objectOnRangeField(canvas) {
    // const canvas = document.getElementById(box.id);
    if (!canvas) return;
-   const thisBox = [box.id, canvas, box.value]
-
    // check if object is on range field
    const { left, top } = canvas.getBoundingClientRect();
    const { offsetWidth, offsetHeight } = canvas;
@@ -132,25 +137,12 @@ function objectOnRangeField(canvas) {
    }
 }
 
-function pushToPastBoxes(id, value) {
-   let newBox = true;
-   pastBoxes.forEach(el => {
-      if (id == el[0]) {
-         updatePastBoxesValue(el[0], value)
-         newBox = false;
-      }
-   });
-   if (!newBox) return;
-   pastBoxes[id] = value;
-}
-
 function drawBox(xa, ya, xb, yb, name, data, measurement, id) {
    const box = document.createElement('canvas');
    box.classList.add('box');
    const ctx = box.getContext("2d");
 
    const offsetY = 90;
-   const offsetYScale = 0.001;
    const screenW = window.innerWidth;
    const screenH = window.innerHeight;
    const camW = 1280;
@@ -199,13 +191,11 @@ function drawDataBox(name, data, measurement, argLeft, argTop, box, id) {
    wrapper.appendChild(dataWrapper);
 }
 
-
 function setDataInInfoField(detections) {
    let aggregatedData = {};
    for (let detection of detections) {
       for (let key in detection.data) {
-         if (key == "Food_Name") continue
-         if (key == "Food_ID") continue
+         if (key == "Food_Name" || key == "Food_ID") continue;
          if (!(key in aggregatedData)) {
             aggregatedData[key] = 0;
          }
@@ -216,7 +206,7 @@ function setDataInInfoField(detections) {
          aggregatedData[key] += parseFloat(detection.data[key] * value);
       }
    }
-   let html = '<div class="dataTableWrapper">' + translateDiceName(detections[0].name) + '</div><table class="table-container">';
+   let html = '<h3>' + translateDiceName(detections[0].name) + '</h3><table class="table-container">';
    for (let key in aggregatedData) {
       html += '<tr><td style="padding-right: 50px;">' + key + '</td><td class="dataItem">' + aggregatedData[key] + measurement + '</td></tr>';
    }
@@ -225,13 +215,29 @@ function setDataInInfoField(detections) {
 }
 
 function setDataInInfoFieldForAllergens(detections) {
-   let html = '<div class="dataTableWrapper">' + translateDiceName(detections[0].name) + '</div><table class="table-container">';
+   let allergens = {};
+   let nonVeganVegetarianDetected = false;
    for (let detection of detections) {
       for (let key in detection.data) {
-         if (key == "Food_Name") continue
-         if (key == "Food_ID") continue
-         html += '<tr><td style="padding-right: 50px;">' + key + '</td><td class="dataItem">' + (detection.data[key] == 1 ? "ja" : "Nein") + '</td></tr>';
+         if (key == "Food_Name" || key == "Food_ID") continue;
+         if (detection.data[key] == 1) {
+            allergens[key] = true;
+         }
       }
+
+      if (detection.data["Vegan"] == 0 || detection.data["Vegetarisch"] == 0) {
+         nonVeganVegetarianDetected = true;
+      }
+   }
+
+   if (nonVeganVegetarianDetected) {
+      allergens["Vegan"] = false;
+      allergens["Vegetarisch"] = false;
+   }
+
+   let html = '<h3>' + translateDiceName(detections[0].name) + '</h3><table class="table-container">';
+   for (let allergen in allergens) {
+      html += '<tr><td style="padding-right: 50px;">' + allergen + '</td><td class="dataItem">' + (allergens[allergen] ? "ja" : "Nein") + '</td></tr>';
    }
    html += '</table></div>';
    infoField.innerHTML = html;
@@ -266,6 +272,7 @@ function translateDiceName(engName) {
    }
    return deName;
 }
+
 function findPosition(overlapResult, pos) {
    pos = overlapResult.some(subArray => subArray.includes(pos)) ? overlapResult.findIndex(subArray => subArray.includes(pos)) : -1;
    return pos;
@@ -328,10 +335,27 @@ function checkOldState(objId) {
    return value;
 }
 
-function updatePastBoxesValue(id, value) {
-   pastBoxes.forEach(el => {
-      if (id == el[0]) el[1] = value;
-   });
+function pushToPastBoxes(id, value) {
+   let newBox = true;
+   // pastBoxes.forEach(el => {
+   //    if (id == el[0]) {
+   //       updatePastBoxesValue(el[0], value)
+   //       newBox = false;
+   //    }
+   // });
+   if (!newBox) return;
+   pastBoxes[id] = value;
+}
+
+// function updatePastBoxesValue(id, value) {
+//    pastBoxes.forEach(el => {
+//       if (id == el[0]) { el[1] = value; }
+//    });
+// }
+
+function removeCanvasAndSibling(canvas) {
+   canvas.nextElementSibling.remove();
+   canvas.remove();
 }
 
 function clearUnactiveObjects() {
@@ -343,9 +367,4 @@ function clearUnactiveObjects() {
          removeCanvasAndSibling(canvas)
       }
    });
-}
-
-function removeCanvasAndSibling(canvas) {
-   canvas.nextElementSibling.remove();
-   canvas.remove();
 }

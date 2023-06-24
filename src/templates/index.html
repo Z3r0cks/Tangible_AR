@@ -14,34 +14,36 @@
 </head>
 
 <body>
-   <h1>Frühstücks-Check</h1>
-   <h2 id="title">wie startest Du in den Tag?</h2>
+   <h1>FRÜHSTÜCK-CHECK</h1>
+   <h2 id="title">Wie <span id="titleType"> gesund </span> ist dein Frühstück?</h2>
+   <div id="rangefield">
+      <div> Hier Lebensmittel reinlegen zum Menge ändern </div>
+      <input id="range" type="range" min="1" max="10" step="1.0" value="0">
+   </div>
    <div id="infoField"></div>
-   <!-- <div id="foodSpace">
-      <div> 
-         <span class="foodField"></span>
-         <span class="foodField"></span>
-      </div>
-      <div>
-         <span class="foodField"></span>
-         <span class="foodField"></span>
-      </div>
-      <div>
-         <span class="foodField"></span>
-         <span class="foodField"></span>
-      </div>
-      <div>
-         <span class="foodField"></span>
-         <span class="foodField"></span>
-      </div>
-   </div> -->
-   <div id="rangefield"><span>Hier Reinlegen</span><span>zum Menge ändern</span></div>
    <div id="wrapper">
       <canvas class="box" width="800" height="600" style="border:1px solid #000000;"></canvas>
    </div>
-   <input id="range" type="range" min="1" max="10" step="1.0" value="0">
    <button id="resetRange">Regler zurücksetzen</button>
    <button id="resetValue">Werte zurücksetzen</button>
 </body>
 
 </html>
+<!-- <div id="foodSpace">
+   <div> 
+      <span class="foodField"></span>
+      <span class="foodField"></span>
+   </div>
+   <div>
+      <span class="foodField"></span>
+      <span class="foodField"></span>
+   </div>
+   <div>
+      <span class="foodField"></span>
+      <span class="foodField"></span>
+   </div>
+   <div>
+      <span class="foodField"></span>
+      <span class="foodField"></span>
+   </div>
+</div> -->
