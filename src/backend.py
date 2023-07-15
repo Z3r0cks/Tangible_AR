@@ -1,3 +1,5 @@
+# This file contains the backend of the application. The video stream is processed and the detections are sent to the frontend after accessing the database with the class_id of the detections. The database is created with the script "create_database.py" and contains the food data from the Open Food Facts database. The database is stored in the same folder as this file and is called "food_data.sqlite".
+
 from flask import Flask, render_template
 from flask_socketio import SocketIO, emit
 import threading
@@ -7,7 +9,6 @@ import numpy as np
 from ultralytics import YOLO
 import sqlite3
 
-# app = Flask(__name__, template_folder='../templates')
 app = Flask(__name__)
 socketio = SocketIO(app)
 
@@ -18,116 +19,115 @@ ZOME_POLYGON = np.array([
     [1280, 720],    # Bottom right
     [0, 720]        # Bottom left
 ])
-# ZOME_POLYGON = np.array([
-#     [250, 250],         # Top left
-#     [1030, 250],      # Top right
-#     [1030, 470],    # Bottom right
-#     [250, 470]        # Bottom left
-# ])
 
 
+# Route for the index page
 @app.route('/')
 def index():
     return render_template('index.html')
 
 
+# function for the object detection and video stream
 def object_detection(webcam_resolution=[1280, 720]):
 
+    # Webcam/Video stream setup
     frame_width, frame_height = webcam_resolution
     cap = cv2.VideoCapture(1, cv2.CAP_DSHOW)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, frame_width)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, frame_height)
 
-    model = YOLO("model/modelV3.pt")
-    # model = YOLO("model/modelV2.pt")
+    try:
+        model = YOLO("model/modelV3.pt")
 
-    box_annotations = sv.BoxAnnotator(
-        thickness=2,
-        text_color=sv.Color.white(),
-        text_thickness=1,
-        text_scale=1
-    )
-
-    zone = sv.PolygonZone(polygon=ZOME_POLYGON,
-                          frame_resolution_wh=tuple(webcam_resolution))
-    zone_annotator = sv.PolygonZoneAnnotator(zone=zone, color=sv.Color.red())
-
-    while True:
-        ret, frame = cap.read()
-        results = model(frame)[0]
-
-        detections = sv.Detections.from_yolov8(results)
-        labels = [
-            f"{model.names[confidence]} {class_id: 0.2f}"
-            for _, _, class_id, confidence, _
-            in detections
-        ]
-
-        frame = box_annotations.annotate(
-            scene=frame,
-            detections=detections,
-            labels=labels
+        box_annotations = sv.BoxAnnotator(
+            thickness=2,
+            text_color=sv.Color.white(),
+            text_thickness=1,
+            text_scale=1
         )
 
-        zone.trigger(detections=detections)
-        frame = zone_annotator.annotate(scene=frame)
+        zone = sv.PolygonZone(polygon=ZOME_POLYGON,
+                              frame_resolution_wh=tuple(webcam_resolution))
+        zone_annotator = sv.PolygonZoneAnnotator(
+            zone=zone, color=sv.Color.red())
 
-        cv2.imshow("YOLOv8", frame)
-        if (cv2.waitKey(300) == 27):
-            break
+        # Object detection loop/Video stream loop
+        while True:
+            ret, frame = cap.read()
+            results = model(frame)[0]
 
-        # Emit a message with detected objects to the client.
-        detections_list = []
+            detections = sv.Detections.from_yolov8(results)
+            labels = [
+                f"{model.names[confidence]} {class_id: 0.2f}"
+                for _, _, class_id, confidence, _
+                in detections
+            ]
 
-        table = "home"
+            frame = box_annotations.annotate(
+                scene=frame,
+                detections=detections,
+                labels=labels
+            )
 
-        for i in range(len(detections.class_id)):
+            zone.trigger(detections=detections)
+            frame = zone_annotator.annotate(scene=frame)
 
-            for id in detections.class_id:
-                if (id == 0):
-                    table = "allergens"
-                elif (id == 6):
-                    table = "home"
-                elif (id == 8):
-                    table = "minerals"
-                elif (id == 9):
-                    table = "nutrients"
-                elif (id == 12):
-                    table = "trace_elements"
-                elif (id == 13):
-                    table = "vitamins"
+            cv2.imshow("YOLOv8", frame)
+            if (cv2.waitKey(300) == 27):
+                break
 
-            if (table != "home"):
-                id = detections.class_id[i]
-                if (id != 0 and id != 6 and id != 8 and id != 9 and id != 12 and id != 13):
-                    # get infos from detections and save them in a list
-                    detection_info = {
-                        "class_id": int(detections.class_id[i]),
-                        "box_coordinates": [float(coord) for coord in detections.xyxy[i]],
-                        "name": table
-                    }
-                    detections_list.append(detection_info)
+            detections_list = []
+            table = "no table"
+            table_dict = {
+                0: "allergens",
+                6: "home",
+                8: "minerals",
+                9: "nutrients",
+                12: "trace_elements",
+                13: "vitamins"
+            }
 
-                    conn = sqlite3.connect('food_data.sqlite')
+            for i in range(len(detections.class_id)):
 
-                    # set the row_factory to sqlite3.Row
-                    conn.row_factory = sqlite3.Row
+                # Set table name for each class_id
+                table = table_dict.get(id, "no table")
 
-                    c = conn.cursor()
+                if (table != "home" and table != "no table"):
+                    id = detections.class_id[i]
+                    if id not in [0, 6, 8, 9, 12, 13]:
 
-                    c.execute('SELECT * FROM food_' + table +
-                              ' WHERE Food_ID=?', (int(detections.class_id[i]),))
-                    result = c.fetchone()
+                        # Get infos from detections and save them in a list
+                        detection_info = {
+                            "class_id": int(detections.class_id[i]),
+                            "box_coordinates": [float(coord) for coord in detections.xyxy[i]],
+                            "name": table
+                        }
+                        detections_list.append(detection_info)
 
-                    if result is not None:
-                        detection_info["data"] = dict(result)
+                        # Connect to the database
+                        conn = sqlite3.connect('food_data.sqlite')
 
-                    conn.close()
+                        # Set the row_factory to sqlite3.Row
+                        conn.row_factory = sqlite3.Row
+                        c = conn.cursor()
+                        c.execute('SELECT * FROM food_' + table +
+                                  ' WHERE Food_ID=?', (int(detections.class_id[i]),))
+                        result = c.fetchone()
 
-        if (table == "home"):
-            socketio.emit('new detections', "home")
-        else:
-            socketio.emit('new detections', detections_list)
+                        if result is not None:
+                            detection_info["data"] = dict(result)
+
+                        conn.close()
+
+            # Send the detections to the frontend
+            if (table == "home"):
+                socketio.emit('new detections', "home")
+            elif (table == "no table"):
+                socketio.emit('new detections', "no table")
+            else:
+                socketio.emit('new detections', detections_list)
+    finally:
+        cap.release()
 
 
 if __name__ == '__main__':

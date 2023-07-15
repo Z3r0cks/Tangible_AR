@@ -1,13 +1,13 @@
+# create and fill database
+
 import sqlite3
 
 # connect to database
 conn = sqlite3.connect('food_data.sqlite')
 c = conn.cursor()
-# Nährstoffe, Allergien, Vitamine, Mineralstoffe, Spurenelemente
-# Nutrients, allergies, vitamins, minerals, trace elements
 
 food_nutrients = [
-    # (Lebensmittel_ID, Name, Kohlenhydrate, Eiweis, Fett, Ballaststoffe, Zucker, Salz)
+    # Food_ID, Food_Name, Kohlenhydrate, Eiweis, Fett, Ballaststoffe, Zucker, Salz
     (1, "Banane", 20030, 40417, 180, 2000, 17270, 3),
     (2, "Brot", 40417, 7612, 1302, 7237, 946, 1078),
     (3, "Butter", 600, 670, 83199, 0, 600, 13),
@@ -22,7 +22,7 @@ food_nutrients = [
 ]
 
 food_vitamins = [
-    # (Lebensmittel_ID, Name, vitamina, vitaminb1, vitaminb2, vitaminb3, vitaminb5, vitaminb6,vitaminb7, vitaminb9, vitaminb12, vitaminc, vitamind, vitamine, vitamink)
+    # Food_ID, Food_Name, vitamina, vitaminb1, vitaminb2, vitaminb3, vitaminb5, vitaminb6,vitaminb7, vitaminb9, vitaminb12, vitaminc, vitamind, vitamine, vitamink
     (1, "Banane", 36, 44, 57, 1683, 230, 363, 5, 14, 0, 11000, 0, 270, 0),
     (2, "Brot", 7, 143, 112, 6446, 639, 199, 5.7, 34, 0, 0, 0, 903, 7),
     (3, "Butter", 970, 5, 22, 201, 47, 5, 0, 0, 0, 200, 1.24, 2000, 7),
@@ -37,7 +37,7 @@ food_vitamins = [
 ]
 
 food_minerals = [
-    # (Lebensmittel_ID, Name, Natrium, Kalium, Calcium, Magnesium, Phosphor, Schwefel, Chlorid)
+    # Food_ID, Food_Name, Natrium, Kalium, Calcium, Magnesium, Phosphor, Schwefel, Chlorid
     (1, "Banane", 1, 367, 7, 30, 22, 13, 109),
     (2, "Brot", 424, 292, 26, 77, 238, 88, 678),
     (3, "Butter", 5, 16, 13, 3, 21, 9, 23),
@@ -52,7 +52,7 @@ food_minerals = [
 ]
 
 food_trace_elements = [
-    # (Lebensmittel_ID, Name, Eisen, Zink, Kuper, Mangan, Fluorid, Iodid)
+    # Food_ID, Food_Name, Eisen, Zink, Kuper, Mangan, Fluorid, Iodid
     (1, "Banane", 352, 162, 108, 259, 14, 2),
     (2, "Brot", 2727, 2100, 340, 2089, 64, 2.9),
     (3, "Butter", 0, 230, 0, 0, 71, 2.1),
@@ -87,30 +87,21 @@ tables = [[food_nutrients, 8, "food_nutrients"], [food_allergens, 7, "food_aller
 
 # create tables
 for table in tables:
-    # Tabellenname und Spaltenanzahl extrahieren
     table_name = table[0][0]
     num_columns = table[1]
 
-    # Spaltennamen extrahieren
     column_names = table[0][-2]
     column_names = [name.replace(" ", "_") for name in column_names]
 
     columns = ", ".join([f"{name} TEXT" for name in column_names])
-    columns = columns.replace("Lebensmittel_ID TEXT",
-                              "Lebensmittel_ID INTEGER PRIMARY KEY", 1)
+    columns = columns.replace("Food_ID TEXT",
+                              "Food_ID INTEGER PRIMARY KEY", 1)
 
-    # # Tabelle erstellen
     c.execute(f'''
         CREATE TABLE IF NOT EXISTS {table[2]} (
            {columns}
         )
     ''')
-
-    # placeholders = ", ".join(["?" for i in range(num_columns)])
-
-    # # insert data
-    # c.executemany(
-    #     f'INSERT INTO {table_name} VALUES ({placeholders})', table[0][0:8])
 
 
 c.executemany(

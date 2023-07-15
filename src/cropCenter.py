@@ -1,3 +1,5 @@
+# Crop images to 640x640px and export them into output_folder
+
 import cv2
 import os
 
@@ -35,8 +37,5 @@ def crop_center_in_folder(image_path, target_size=640):
         cropped_image = crop_center(image, target_size)
         cv2.imwrite(output_image_path, cropped_image)
 
-crop_center_in_folder(image_path, 640)
 
-# cv2.imshow("Cropped Image", cropped_image)
-# cv2.waitKey(0)
-# cv2.destroyAllWindows()
+crop_center_in_folder(image_path, 640)

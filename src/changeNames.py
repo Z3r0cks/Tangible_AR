@@ -1,4 +1,7 @@
+# This script is used to rename images in folder and export them to the same folder
+
 import os
+
 
 def rename_images(folder_path, frefix):
     files = os.listdir(folder_path)
@@ -15,9 +18,6 @@ def rename_images(folder_path, frefix):
 
 
 object = "allergies"
-
-# prenotation for python
-
 folder_path = f"./img/rawImgs/{object}"
 prefix = f"{object}_img_"
 rename_images(folder_path, prefix)

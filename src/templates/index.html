@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 
 <head>
    <meta charset="UTF-8">
@@ -8,9 +8,7 @@
    <script defer src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
    <script defer src="{{ url_for('static', filename='main.js') }}"></script>
    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-   <!-- <link rel="stylesheet" href="../static/style.css"> -->
-
-   <title>Document</title>
+   <title>Frühstücks-Check</title>
 </head>
 
 <body>
@@ -18,32 +16,16 @@
    <h2 id="title">Wie <span id="titleType"> gesund </span> ist dein Frühstück?</h2>
    <div id="rangefield">
       <div> Hier Lebensmittel reinlegen zum Menge ändern </div>
-      <input id="range" type="range" min="1" max="10" step="1.0" value="0">
+      <input id="range" type="range" min="1" max="10" step="0.5" value="0">
    </div>
    <div id="infoField"></div>
+   <div id="typeField">Kategorie</div>
    <div id="wrapper">
       <canvas class="box" width="800" height="600" style="border:1px solid #000000;"></canvas>
    </div>
-   <button id="resetRange">Regler zurücksetzen</button>
-   <button id="resetValue">Werte zurücksetzen</button>
+   <div id="buttonWrapper">
+      <button class="btn" id="resetRange">Regler zurücksetzen</button>
+   </div>
 </body>
 
 </html>
-<!-- <div id="foodSpace">
-   <div> 
-      <span class="foodField"></span>
-      <span class="foodField"></span>
-   </div>
-   <div>
-      <span class="foodField"></span>
-      <span class="foodField"></span>
-   </div>
-   <div>
-      <span class="foodField"></span>
-      <span class="foodField"></span>
-   </div>
-   <div>
-      <span class="foodField"></span>
-      <span class="foodField"></span>
-   </div>
-</div> -->
